@@ -68,6 +68,12 @@ fn main() {
     if minor >= 28 {
         println!("cargo:rustc-cfg=num_nonzero");
     }
+
+    // Const generics stabilized in Rust 1.TBD:
+    // https://github.com/rust-lang/rust/issues/44580
+    if minor >= 37 {
+        println!("cargo:rustc-cfg=const_generics");
+    }
 }
 
 fn rustc_minor_version() -> Option<u32> {
