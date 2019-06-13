@@ -127,6 +127,7 @@ impl<T: ?Sized> Serialize for PhantomData<T> {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Does not require T: Serialize.
+#[cfg(not(const_generics))]
 impl<T> Serialize for [T; 0] {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -137,6 +138,62 @@ impl<T> Serialize for [T; 0] {
     }
 }
 
+#[cfg(const_generics)]
+impl<T, const N: usize> Serialize for [T; N]
+where
+    Self:SerializeImpl<{N == 0}>
+{
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.serialize_impl(serializer)
+    }
+}
+
+#[cfg(const_generics)]
+trait SerializeImpl<const IS_ZERO: bool> {
+    #[inline]
+    fn serialize_impl<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        try!(serializer.serialize_tuple(0)).end()
+    }
+}
+
+#[cfg(const_generics)]
+impl<T> SerializeImpl<true> for [T; 0] {
+    #[inline]
+    fn serialize_impl<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        try!(serializer.serialize_tuple(0)).end()
+    }
+}
+
+#[cfg(const_generics)]
+impl<T, const N: usize> SerializeImpl<false> for [T; N]
+where
+    T: Serialize,
+{
+    #[inline]
+    fn serialize_impl<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = try!(serializer.serialize_tuple(N));
+        let slice: &[_] = self;
+        for e in slice {
+            try!(seq.serialize_element(e));
+        }
+        seq.end()
+    }
+}
+
+#[cfg(not(const_generics))]
 macro_rules! array_impls {
     ($($len:tt)+) => {
         $(
@@ -160,6 +217,7 @@ macro_rules! array_impls {
     }
 }
 
+#[cfg(not(const_generics))]
 array_impls! {
     01 02 03 04 05 06 07 08 09 10
     11 12 13 14 15 16 17 18 19 20

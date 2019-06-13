@@ -93,6 +93,12 @@ fn main() {
             println!("cargo:rustc-cfg=std_atomic");
         }
     }
+
+    // Const generics stabilized in Rust 1.TBD:
+    // https://github.com/rust-lang/rust/issues/44580
+    if minor >= 40 {
+        println!("cargo:rustc-cfg=const_generics");
+    }
 }
 
 fn rustc_minor_version() -> Option<u32> {
